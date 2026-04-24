@@ -96,8 +96,8 @@ jobs:
           # Docker registry for container base images (always configured)
           docker-registry: sonatype.repo.sonatype.app/docker-all
           # Uncomment if using private Docker registry:
-          # docker-username: ${{ secrets.DOCKER_USERNAME }}
-          # docker-password: ${{ secrets.DOCKER_PASSWORD }}
+          docker-username: ${{ secrets.DOCKER_USERNAME }}
+          docker-password: ${{ secrets.DOCKER_PASSWORD }}
           # Uncomment if this project has npm/yarn/pnpm with private registry:
           # npmrc-content: ${{ secrets.NPMRC_CONTENT }}
           # Maven settings for Java/Gradle projects (uncomment if needed):
