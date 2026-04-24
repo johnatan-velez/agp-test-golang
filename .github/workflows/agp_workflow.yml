@@ -42,7 +42,7 @@ concurrency:
 
 jobs:
   agp:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     timeout-minutes: 60
 
     steps:
