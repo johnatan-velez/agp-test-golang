@@ -123,7 +123,7 @@ jobs:
 
           # AGP API Token - Required for Guide dashboard tracking
           AGP_API_TOKEN: ${{ secrets.AGP_API_TOKEN }}
-          AGP_API_URL: https://api.guide.sonatype.com
+          AGP_API_URL: https://api.guide-dev.sonatype.dev
 
           # GitHub Token for PR creation (using default token - no restrictions)
           GITHUB_TOKEN: ${{ github.token }}
