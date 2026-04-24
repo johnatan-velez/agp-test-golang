@@ -1,0 +1,152 @@
+# Sonatype Guide - Agentic Patches Configuration
+# Learn more: https://guide.sonatype.com
+# File: agp.yml
+#
+# This file configures how AGP scans, validates, and creates pull requests
+# for your project's dependencies. AGP works without this file, but
+# adding it gives you full control over the process.
+
+version: "1"
+
+# ============================================================================
+# IGNORE: Paths and packages AGP should skip during scanning
+# ============================================================================
+ignore:
+  # Paths to exclude from dependency scanning
+  # These use glob patterns matching your Go ecosystem
+  paths:
+    - "**/vendor/**"      # Vendored dependencies (not scanned)
+    - "**/.git/**"        # Git internal files
+    - "**/bin/**"         # Build output binaries
+    - "**/dist/**"        # Distribution folders
+    - "**/.idea/**"       # IDE configuration
+    - "**/.vscode/**"     # IDE configuration
+  # Packages to never suggest upgrades for (add specific packages here)
+  packages: []
+  # Example packages to ignore:
+  # - github.com/some-legacy/package  # Legacy package with breaking changes
+
+# ============================================================================
+# AGENT: AI agent configuration for automated fix attempts
+# ============================================================================
+agent:
+  # Enable AI-powered automated fix attempts
+  enabled: true
+  # Provider: "anthropic" or "bedrock" (must match your workflow configuration)
+  provider: anthropic
+  # Model to use for generating fixes
+  model: claude-sonnet-4-5
+  # Maximum number of fix attempts before giving up
+  maxFixAttempts: 3
+  # Timeout for AI operations
+  timeout: 30m
+
+# ============================================================================
+# VALIDATION: Build validation after dependency upgrades
+# ============================================================================
+validation:
+  # Enable build/test validation before creating PRs
+  enabled: true
+  # Commands to validate the project builds correctly after upgrades
+  # These are standard Go commands for this project
+  commands:
+    - "go mod download"     # Download dependencies
+    - "go build ./..."      # Build all packages
+    - "go test ./..."       # Run all tests (add -short for faster runs)
+  # Timeout for validation commands
+  timeout: 10m
+
+# ============================================================================
+# PR: Pull request settings
+# ============================================================================
+pr:
+  # Labels to apply to created pull requests
+  labels:
+    - dependencies
+    - automated
+    - agp
+  # Create PRs as draft (set to true for safer workflows)
+  draft: false
+  # PR title template (supports Go templates)
+  titleTemplate: "chore(deps): {{.GroupName}}"
+  # Branch name template for PR branches
+  branchTemplate: "agp/{{.GroupID}}"
+  # Reviewers to assign (GitHub usernames)
+  reviewers: []
+  # Example reviewers:
+  # - your-username
+  # - team-lead-username
+
+# ============================================================================
+# LIMITS: Rate limiting and throttling
+# ============================================================================
+limits:
+  # Maximum number of open PRs AGP will maintain
+  maxOpenPRs: 5
+  # Maximum number of PRs to create per workflow run
+  maxPRsPerRun: 10
+  # Wait period before creating PRs for different update types
+  # This allows time for security review of critical updates
+  waitPeriod:
+    major: 7d   # Major version bumps - wait 7 days
+    minor: 3d   # Minor version bumps - wait 3 days
+    patch: 1d   # Patch version bumps - wait 1 day
+
+# ============================================================================
+# AUTOMERGE: Auto-merge settings for approved PRs
+# ============================================================================
+automerge:
+  # Enable automatic merging (requires branch protection rules)
+  enabled: false
+  # Merge method: "squash", "merge", or "rebase"
+  method: squash
+  # Uncomment to enable with conditions:
+  # enabled: true
+  # method: squash
+  # Conditions for automerge (optional):
+  # requiresApproval: true
+  # requiredApprovals: 1
+
+# ============================================================================
+# GROUPING: How to group dependency updates into PRs
+# ============================================================================
+grouping:
+  # Strategy: "individual" (one PR per package) or "grouped" (combine related)
+  strategy: individual
+  # Custom grouping rules (only used with "grouped" strategy)
+  rules: []
+  # Example grouping rules:
+  # - name: "go-core"
+  #   patterns:
+  #     - "golang.org/x/*"
+  #     - "google.golang.org/*"
+  # - name: "gin-framework"
+  #   patterns:
+  #     - "github.com/gin-gonic/*"
+  # - name: "all-dependencies"
+  #   patterns:
+  #     - "*"
+
+# ============================================================================
+# PROJECTS: Monorepo per-project overrides (not applicable for this repo)
+# ============================================================================
+# This is a single Go project, so per-project overrides are not needed.
+# If you convert to a monorepo structure, uncomment and configure below:
+#
+# projects:
+#   api:
+#     path: cmd/api
+#     ecosystem: go
+#     validation:
+#       enabled: true
+#       commands:
+#         - "go build ./cmd/api"
+#         - "go test ./cmd/api/..."
+#   worker:
+#     path: cmd/worker
+#     ecosystem: go
+#     validation:
+#       enabled: true
+#       commands:
+#         - "go build ./cmd/worker"
+#         - "go test ./cmd/worker/..."

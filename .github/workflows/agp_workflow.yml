@@ -1,0 +1,131 @@
+# Sonatype Guide — Agentic Patches (AGP) Workflow
+# Learn more: https://guide.sonatype.com
+# File: .github/workflows/agp_workflow.yml
+#
+# This workflow scans your project dependencies for vulnerabilities,
+# recommends upgrades, and automatically creates pull requests with fixes.
+
+name: "Sonatype Guide - Agentic Patches"
+
+on:
+  # Weekly automated scan every Monday at 09:00 UTC
+  schedule:
+    - cron: '0 9 * * 1'
+
+  # Manual trigger with configurable options
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'Run mode: full (all dependencies) or targeted (specific vulnerabilities)'
+        required: false
+        default: 'full'
+        type: string
+      vulnerabilities:
+        description: 'Comma-separated list of vulnerability IDs to target (only used in targeted mode)'
+        required: false
+        type: string
+      verbose:
+        description: 'Enable verbose logging for debugging'
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: write        # Required: create commits and push branches
+  pull-requests: write   # Required: create and manage pull requests
+  # id-token: write      # Uncomment if using AWS Bedrock OIDC authentication
+
+# Prevent concurrent runs to avoid conflicts
+concurrency:
+  group: "agp-workflow"
+  cancel-in-progress: false
+
+jobs:
+  agp:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      # Step 1: Checkout the repository
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Step 2: AWS OIDC Credentials (only needed for AWS Bedrock)
+      # Uncomment this step if using AWS Bedrock instead of Anthropic API
+      # - name: Configure AWS credentials
+      #   uses: aws-actions/configure-aws-credentials@v4
+      #   with:
+      #     role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+      #     aws-region: us-east-1
+      #     role-session-name: agp-session
+
+      # Step 3: Private Registry Authentication
+      # Uncomment and configure if your project uses private registries
+      #
+      # For private Go modules (GOPRIVATE):
+      # - name: Configure private Go modules
+      #   run: |
+      #     git config --global url."https://${{ secrets.GO_MODULE_TOKEN }}@github.com/".insteadOf "https://github.com/"
+      #
+      # For private npm registry:
+      # - name: Configure npm registry
+      #   run: echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" >> ~/.npmrc
+      #
+      # For private Python PyPI:
+      # - name: Configure pip index
+      #   run: |
+      #     mkdir -p ~/.pip
+      #     echo "[global]" > ~/.pip/pip.conf
+      #     echo "index-url = https://${{ secrets.PYPI_TOKEN }}@pypi.example.com/simple" >> ~/.pip/pip.conf
+      #
+      # For private Maven repository:
+      # - name: Configure Maven settings
+      #   uses: s4u/maven-settings-action@v2
+      #   with:
+      #     servers: '[{"id": "private-repo", "username": "${{ secrets.MAVEN_USER }}", "password": "${{ secrets.MAVEN_PASSWORD }}"}]'
+
+      # Step 4: Run Sonatype AGP Action
+      - name: Run Agentic Patches
+        uses: sonatype/agp-action@v1
+        with:
+          mode: ${{ inputs.mode || 'full' }}
+          vulnerabilities: ${{ inputs.vulnerabilities }}
+          create-pr: 'true'
+          dry-run: 'false'
+          verbose: ${{ inputs.verbose || 'false' }}
+          # Docker registry for container base images (always configured)
+          docker-registry: sonatype.repo.sonatype.app/docker-all
+          # Uncomment if using private Docker registry:
+          # docker-username: ${{ secrets.DOCKER_USERNAME }}
+          # docker-password: ${{ secrets.DOCKER_PASSWORD }}
+          # Uncomment if this project has npm/yarn/pnpm with private registry:
+          # npmrc-content: ${{ secrets.NPMRC_CONTENT }}
+          # Maven settings for Java/Gradle projects (uncomment if needed):
+          # maven-settings-xml: |
+          #   <settings>
+          #     <servers>
+          #       <server>
+          #         <id>central</id>
+          #         <username>${env.MAVEN_USERNAME}</username>
+          #         <password>${env.MAVEN_PASSWORD}</password>
+          #       </server>
+          #     </servers>
+          #   </settings>
+          # Python PyPI configuration (uncomment if using private PyPI):
+          # pip-index-url: https://pypi.example.com/simple
+          # pip-extra-index-url: https://pypi.org/simple
+
+        env:
+          # Anthropic API Key (active - using Anthropic directly)
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          # If using AWS Bedrock instead, comment out ANTHROPIC_API_KEY above
+          # and uncomment the AWS OIDC step earlier in this workflow.
+
+          # AGP API Token - Required for Guide dashboard tracking
+          AGP_API_TOKEN: ${{ secrets.AGP_API_TOKEN }}
+          AGP_API_URL: https://api.guide.sonatype.com
+
+          # GitHub Token for PR creation (using default token - no restrictions)
+          GITHUB_TOKEN: ${{ github.token }}
+          # If your organization restricts GITHUB_TOKEN, uncomment below:
+          # GITHUB_TOKEN: ${{ secrets.AGP_GITHUB_TOKEN }}
