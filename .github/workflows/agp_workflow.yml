@@ -94,6 +94,7 @@ jobs:
           dry-run: 'false'
           verbose: ${{ inputs.verbose || 'false' }}
           # Docker registry for container base images (always configured)
+          image-tag: go-lang-ecosystem-support-in-docker-image-2-f33ea5d5
           docker-registry: sonatype.repo.sonatype.app/docker-all
           # Uncomment if using private Docker registry:
           docker-username: ${{ secrets.DOCKER_USERNAME }}
